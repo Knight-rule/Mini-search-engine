@@ -1,0 +1,987 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Mini Search Engine</title>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg:#fff;--surface:#fff;--surface2:#f8f9fa;--surface3:#e8eaed;--text:#202124;--text2:#5f6368;--text3:#9aa0a6;
+--primary:#1a73e8;--primary-light:#e8f0fe;--primary-dark:#1557b0;--accent:#ea4335;--green:#34a853;--yellow:#fbbc04;
+--border:#dadce0;--shadow:0 1px 6px rgba(32,33,36,.28);--shadow-lg:0 4px 16px rgba(0,0,0,.2);
+--radius:8px;--radius-lg:24px;
+}
+[data-theme="dark"]{
+--bg:#1a1a2e;--surface:#16213e;--surface2:#1a1a2e;--surface3:#0f3460;--text:#e6e6e6;--text2:#b0b0b0;--text3:#808080;
+--primary:#4dabf7;--primary-light:#1a3a5c;--primary-dark:#74c0fc;--accent:#ff6b6b;--green:#51cf66;--yellow:#fcc419;
+--border:#2d3748;--shadow:0 1px 6px rgba(0,0,0,.5);--shadow-lg:0 4px 16px rgba(0,0,0,.6);
+}
+body{font-family:'Segoe UI',Roboto,Arial,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;min-height:100vh}
+a{color:var(--primary);text-decoration:none}
+a:hover{text-decoration:underline}
+button{cursor:pointer;font-family:inherit}
+
+/* Header */
+.header{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 24px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100}
+.logo{display:flex;align-items:center;gap:12px;font-size:22px;font-weight:700}
+.logo span:nth-child(1){color:#4285f4}.logo span:nth-child(2){color:#ea4335}.logo span:nth-child(3){color:#fbbc04}
+.logo span:nth-child(4){color:#4285f4}.logo span:nth-child(5){color:#34a853}.logo span:nth-child(6){color:#ea4335}
+.header-actions{display:flex;gap:12px;align-items:center}
+.theme-toggle{background:var(--surface2);border:1px solid var(--border);border-radius:20px;padding:6px 16px;font-size:13px;color:var(--text2);display:flex;align-items:center;gap:6px;transition:.2s}
+.theme-toggle:hover{background:var(--surface3)}
+
+/* Nav Tabs */
+.nav{display:flex;gap:0;background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;overflow-x:auto}
+.nav-tab{padding:12px 20px;font-size:14px;font-weight:500;color:var(--text2);border:none;background:none;border-bottom:3px solid transparent;transition:.2s;white-space:nowrap}
+.nav-tab:hover{color:var(--text);background:var(--surface2)}
+.nav-tab.active{color:var(--primary);border-bottom-color:var(--primary)}
+
+/* Panels */
+.panel{display:none;padding:24px;max-width:1200px;margin:0 auto;animation:fadeIn .3s}
+.panel.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+
+/* Cards */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:24px;margin-bottom:20px;box-shadow:var(--shadow)}
+.card-title{font-size:18px;font-weight:600;margin-bottom:16px;display:flex;align-items:center;gap:8px}
+
+/* Form elements */
+.input-group{margin-bottom:16px}
+.input-group label{display:block;font-size:13px;font-weight:500;color:var(--text2);margin-bottom:6px}
+.input{width:100%;padding:10px 14px;border:1px solid var(--border);border-radius:var(--radius);font-size:14px;background:var(--surface);color:var(--text);transition:.2s}
+.input:focus{outline:none;border-color:var(--primary);box-shadow:0 0 0 3px rgba(26,115,232,.15)}
+select.input{appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%235f6368' d='M6 8L1 3h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center}
+
+/* Buttons */
+.btn{padding:10px 24px;border:none;border-radius:var(--radius);font-size:14px;font-weight:500;transition:.2s;display:inline-flex;align-items:center;gap:8px}
+.btn-primary{background:var(--primary);color:#fff}.btn-primary:hover{background:var(--primary-dark)}
+.btn-secondary{background:var(--surface2);color:var(--text);border:1px solid var(--border)}.btn-secondary:hover{background:var(--surface3)}
+.btn-danger{background:var(--accent);color:#fff}.btn-danger:hover{opacity:.9}
+.btn-sm{padding:6px 14px;font-size:12px}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.btn-group{display:flex;gap:8px;flex-wrap:wrap}
+
+/* Search Home */
+.search-home{display:flex;flex-direction:column;align-items:center;padding-top:15vh}
+.search-logo{font-size:60px;font-weight:700;margin-bottom:32px}
+.search-logo span:nth-child(1){color:#4285f4}.search-logo span:nth-child(2){color:#ea4335}
+.search-logo span:nth-child(3){color:#fbbc04}.search-logo span:nth-child(4){color:#4285f4}
+.search-logo span:nth-child(5){color:#34a853}.search-logo span:nth-child(6){color:#ea4335}
+.search-bar{width:100%;max-width:584px;position:relative}
+.search-bar .input{padding:14px 48px;border-radius:var(--radius-lg);font-size:16px;box-shadow:var(--shadow)}
+.search-bar .input:focus{box-shadow:var(--shadow-lg)}
+.search-icon{position:absolute;left:16px;top:50%;transform:translateY(-50%);color:var(--text3);font-size:20px}
+.search-btns{display:flex;gap:12px;margin-top:24px}
+.search-btns .btn{border-radius:var(--radius);padding:10px 20px}
+
+/* Search Results */
+.search-results-page{max-width:700px;margin:0 auto}
+.search-results-bar{display:flex;align-items:center;gap:16px;margin-bottom:24px;padding:16px 0}
+.search-results-bar .input{flex:1;padding:12px 20px;border-radius:var(--radius-lg)}
+.result-item{margin-bottom:28px;padding:16px;border-radius:var(--radius);transition:.15s}
+.result-item:hover{background:var(--surface2)}
+.result-url{font-size:13px;color:var(--text2);margin-bottom:4px}
+.result-title{font-size:18px;color:var(--primary);margin-bottom:6px;font-weight:500}
+.result-title:hover{text-decoration:underline}
+.result-snippet{font-size:14px;color:var(--text2);line-height:1.5}
+.result-snippet .highlight{color:var(--accent);font-weight:600;background:rgba(234,67,53,.1);padding:0 2px;border-radius:2px}
+.result-meta{font-size:12px;color:var(--text3);margin-top:6px;display:flex;gap:16px}
+.result-count{color:var(--text2);font-size:13px;margin-bottom:20px}
+.sort-toggle{display:flex;gap:8px;margin-bottom:20px}
+.sort-toggle .btn.active{background:var(--primary);color:#fff}
+
+/* Crawler */
+.crawl-status{display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap}
+.stat-card{background:var(--surface2);border-radius:var(--radius);padding:16px 20px;flex:1;min-width:140px;text-align:center}
+.stat-card .num{font-size:28px;font-weight:700;color:var(--primary)}
+.stat-card .label{font-size:12px;color:var(--text2);margin-top:4px}
+.crawl-progress{margin:20px 0}
+.progress-bar{height:8px;background:var(--surface3);border-radius:4px;overflow:hidden}
+.progress-fill{height:100%;background:linear-gradient(90deg,var(--primary),var(--green));border-radius:4px;transition:width .5s ease;width:0}
+.progress-text{font-size:12px;color:var(--text2);margin-top:6px}
+.url-list{max-height:400px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius);margin-top:16px}
+.url-item{display:flex;align-items:center;gap:12px;padding:10px 16px;border-bottom:1px solid var(--border);font-size:13px}
+.url-item:last-child{border-bottom:none}
+.url-status{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.url-status.queued{background:var(--yellow)}.url-status.crawled{background:var(--green)}.url-status.error{background:var(--accent)}
+.url-status.active{background:var(--primary);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.4}}
+.url-path{flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--text)}
+
+/* Index */
+.index-controls{display:flex;gap:16px;margin-bottom:20px;flex-wrap:wrap;align-items:end}
+.index-controls .input-group{margin-bottom:0;flex:1;min-width:200px}
+.index-table-wrap{max-height:500px;overflow:auto;border:1px solid var(--border);border-radius:var(--radius)}
+table{width:100%;border-collapse:collapse}
+th{background:var(--surface2);position:sticky;top:0;text-align:left;padding:10px 16px;font-size:13px;font-weight:600;color:var(--text2);border-bottom:1px solid var(--border)}
+td{padding:8px 16px;border-bottom:1px solid var(--border);font-size:13px;vertical-align:top}
+tr:hover td{background:var(--surface2)}
+.doc-chip{display:inline-block;background:var(--primary-light);color:var(--primary);padding:2px 8px;border-radius:12px;font-size:11px;margin:2px}
+.term-freq{font-weight:600;color:var(--primary)}
+.filter-row{display:flex;gap:12px;margin-bottom:16px;align-items:center}
+.filter-row .badge{background:var(--primary);color:#fff;padding:3px 10px;border-radius:12px;font-size:12px}
+
+/* PageRank */
+.graph-container{width:100%;height:450px;background:var(--surface2);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;position:relative}
+.graph-container svg{width:100%;height:100%}
+.pr-scores{display:flex;flex-direction:column;gap:8px;margin-top:16px}
+.pr-row{display:flex;align-items:center;gap:12px;padding:8px 12px;border-radius:var(--radius);background:var(--surface2)}
+.pr-bar{flex:1;height:6px;background:var(--surface3);border-radius:3px;overflow:hidden}
+.pr-bar-fill{height:100%;border-radius:3px;transition:width .5s}
+.pr-url{font-size:13px;flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:200px}
+.pr-score{font-size:13px;font-weight:600;color:var(--primary);width:60px;text-align:right}
+
+/* Analytics */
+.analytics-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px;margin-bottom:24px}
+.analytics-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;text-align:center}
+.analytics-card .icon{font-size:32px;margin-bottom:8px}
+.analytics-card .value{font-size:32px;font-weight:700;color:var(--primary)}
+.analytics-card .label{font-size:13px;color:var(--text2);margin-top:4px}
+.chart-container{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:20px;margin-bottom:20px}
+.chart-container h3{font-size:16px;margin-bottom:16px}
+.bar-chart{display:flex;align-items:end;gap:6px;height:200px;padding-top:20px}
+.bar-col{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px}
+.bar{border-radius:4px 4px 0 0;min-height:4px;transition:height .5s;width:100%;max-width:40px}
+.bar-label{font-size:10px;color:var(--text3);writing-mode:vertical-rl;text-orientation:mixed;max-height:80px;overflow:hidden;text-overflow:ellipsis}
+.bar-value{font-size:10px;color:var(--text2);font-weight:600}
+
+/* Utilities */
+.flex{display:flex}.flex-col{flex-direction:column}.gap-8{gap:8px}.gap-16{gap:16px}.gap-24{gap:24px}
+.mt-8{margin-top:8px}.mt-16{margin-top:16px}.mt-24{margin-top:24px}.mb-16{margin-bottom:16px}
+.text-sm{font-size:13px}.text-xs{font-size:11px}.text-muted{color:var(--text2)}
+.font-mono{font-family:'Cascadia Code','Fira Code',monospace}
+.tag{display:inline-block;padding:2px 8px;border-radius:4px;font-size:11px;font-weight:500}
+.tag-blue{background:var(--primary-light);color:var(--primary)}
+.tag-green{background:#e6f4ea;color:var(--green)}
+.tag-red{background:#fce8e6;color:var(--accent)}
+.tag-yellow{background:#fef7e0;color:#b06000}
+
+/* Suggestion dropdown */
+.suggestions{position:absolute;top:100%;left:0;right:0;background:var(--surface);border:1px solid var(--border);border-radius:0 0 var(--radius) var(--radius);max-height:300px;overflow-y:auto;z-index:10;display:none;box-shadow:var(--shadow-lg)}
+.suggestions.show{display:block}
+.suggestion-item{padding:10px 16px;cursor:pointer;font-size:14px;display:flex;align-items:center;gap:10px}
+.suggestion-item:hover{background:var(--surface2)}
+.suggestion-item .term{font-weight:600}
+.suggestion-item .count{color:var(--text3);font-size:12px;margin-left:auto}
+
+/* Scrollbar */
+::-webkit-scrollbar{width:8px;height:8px}
+::-webkit-scrollbar-track{background:var(--surface2)}
+::-webkit-scrollbar-thumb{background:var(--border);border-radius:4px}
+::-webkit-scrollbar-thumb:hover{background:var(--text3)}
+
+/* Responsive */
+@media(max-width:768px){
+  .panel{padding:16px}
+  .search-home{padding-top:8vh}
+  .search-logo{font-size:36px}
+  .search-bar .input{font-size:14px;padding:12px 40px}
+  .analytics-grid{grid-template-columns:repeat(2,1fr)}
+  .crawl-status{flex-direction:column}
+  .nav-tab{padding:10px 14px;font-size:13px}
+}
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="logo">
+    <span>S</span><span>e</span><span>a</span><span>r</span><span>c</span><span>h</span>
+  </div>
+  <div class="header-actions">
+    <button class="theme-toggle" onclick="toggleTheme()">
+      <span id="themeIcon">🌙</span>
+      <span id="themeLabel">Dark</span>
+    </button>
+  </div>
+</div>
+
+<div class="nav" id="mainNav">
+  <button class="nav-tab active" data-panel="searchHome">🔍 Search</button>
+  <button class="nav-tab" data-panel="crawlerTab">🕷️ Crawler</button>
+  <button class="nav-tab" data-panel="indexTab">📚 Index</button>
+  <button class="nav-tab" data-panel="pagerankTab">📊 PageRank</button>
+  <button class="nav-tab" data-panel="analyticsTab">📈 Analytics</button>
+</div>
+
+<!-- SEARCH HOME -->
+<div class="panel active" id="searchHome">
+  <div class="search-home">
+    <div class="search-logo">
+      <span>M</span><span>i</span><span>n</span><span>i</span><span>S</span><span>e</span>
+    </div>
+    <div class="search-bar">
+      <span class="search-icon">🔍</span>
+      <input type="text" class="input" id="homeSearchInput" placeholder="Search the web..." autocomplete="off">
+      <div class="suggestions" id="homeSuggestions"></div>
+    </div>
+    <div class="search-btns">
+      <button class="btn btn-secondary" onclick="performSearch()">MiniSearch</button>
+      <button class="btn btn-secondary" onclick="loadDemo()">🚀 Load Demo Data</button>
+    </div>
+  </div>
+</div>
+
+<!-- SEARCH RESULTS -->
+<div class="panel" id="searchResultsPanel">
+  <div class="search-results-page">
+    <div class="search-results-bar">
+      <div class="logo" style="font-size:16px">
+        <span>M</span><span>i</span><span>n</span><span>i</span><span>S</span><span>e</span>
+      </div>
+      <div class="search-bar" style="flex:1;position:relative">
+        <input type="text" class="input" id="resultsSearchInput" placeholder="Search..." autocomplete="off">
+        <div class="suggestions" id="resultsSuggestions"></div>
+      </div>
+    </div>
+    <div class="sort-toggle">
+      <button class="btn btn-sm btn-secondary active" data-sort="relevance" onclick="setSortMode('relevance',this)">By Relevance</button>
+      <button class="btn btn-sm btn-secondary" data-sort="pagerank" onclick="setSortMode('pagerank',this)">By PageRank</button>
+    </div>
+    <div class="result-count" id="resultCount"></div>
+    <div id="searchResults"></div>
+  </div>
+</div>
+
+<!-- CRAWLER -->
+<div class="panel" id="crawlerTab">
+  <div class="card">
+    <div class="card-title">🕷️ Web Crawler</div>
+    <div class="flex gap-16" style="flex-wrap:wrap">
+      <div class="input-group" style="flex:2;min-width:300px">
+        <label>Start URL</label>
+        <input type="text" class="input" id="crawlUrl" placeholder="https://example.com" value="https://example.com">
+      </div>
+      <div class="input-group" style="flex:0 0 140px">
+        <label>Max Depth</label>
+        <select class="input" id="crawlDepth">
+          <option value="1">1 level</option>
+          <option value="2" selected>2 levels</option>
+          <option value="3">3 levels</option>
+        </select>
+      </div>
+      <div class="input-group" style="flex:0 0 140px">
+        <label>Delay (ms)</label>
+        <select class="input" id="crawlDelay">
+          <option value="100">100ms</option>
+          <option value="300" selected>300ms</option>
+          <option value="500">500ms</option>
+          <option value="1000">1000ms</option>
+        </select>
+      </div>
+    </div>
+    <div class="btn-group mt-16">
+      <button class="btn btn-primary" id="crawlBtn" onclick="startCrawl()">🕷️ Start Crawl</button>
+      <button class="btn btn-secondary" id="loadDemoCrawl" onclick="loadDemo()">📦 Load Demo Data</button>
+      <button class="btn btn-danger btn-sm" id="resetCrawl" onclick="resetCrawler()" style="display:none">Reset</button>
+    </div>
+  </div>
+
+  <div class="crawl-status" id="crawlStats" style="display:none">
+    <div class="stat-card"><div class="num" id="statQueued">0</div><div class="label">Queued</div></div>
+    <div class="stat-card"><div class="num" id="statCrawled">0</div><div class="label">Crawled</div></div>
+    <div class="stat-card"><div class="num" id="statErrors">0</div><div class="label">Errors</div></div>
+    <div class="stat-card"><div class="num" id="statLinks">0</div><div class="label">Links Found</div></div>
+    <div class="stat-card"><div class="num" id="statSpeed">0</div><div class="label">Pages/sec</div></div>
+  </div>
+
+  <div class="card" id="crawlProgressCard" style="display:none">
+    <div class="card-title">Crawl Progress</div>
+    <div class="progress-bar"><div class="progress-fill" id="crawlProgressFill"></div></div>
+    <div class="progress-text" id="crawlProgressText">0%</div>
+  </div>
+
+  <div class="card" id="crawlUrlCard" style="display:none">
+    <div class="card-title" style="justify-content:space-between">
+      Discovered URLs
+      <span class="text-xs text-muted" id="urlCountLabel"></span>
+    </div>
+    <div class="url-list" id="urlList"></div>
+  </div>
+</div>
+
+<!-- INDEX -->
+<div class="panel" id="indexTab">
+  <div class="card">
+    <div class="card-title">📚 Inverted Index Builder</div>
+    <div class="index-controls">
+      <button class="btn btn-primary" id="buildIndexBtn" onclick="buildIndex()">🔨 Build Index</button>
+      <div class="input-group" style="flex:1">
+        <label>Filter by term</label>
+        <input type="text" class="input" id="indexFilter" placeholder="Type a term..." oninput="filterIndex()">
+      </div>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="useStopWords" checked> Remove stop words
+      </label>
+      <label style="display:flex;align-items:center;gap:6px;font-size:13px;cursor:pointer">
+        <input type="checkbox" id="useStemming" checked> Stemming
+      </label>
+    </div>
+    <div class="filter-row" id="indexStats" style="display:none">
+      <span class="text-sm text-muted">Terms: <strong id="indexTermCount">0</strong></span>
+      <span class="text-sm text-muted">Documents: <strong id="indexDocCount">0</strong></span>
+      <span class="text-sm text-muted">Avg TF-IDF: <strong id="indexAvgTfidf">0</strong></span>
+    </div>
+    <div class="index-table-wrap" id="indexTableWrap">
+      <table id="indexTable">
+        <thead><tr><th>Term</th><th>DF</th><th>Documents (TF-IDF)</th></tr></thead>
+        <tbody id="indexTableBody"><tr><td colspan="3" style="text-align:center;padding:40px;color:var(--text3)">Build the index first or load demo data</td></tr></tbody>
+      </table>
+    </div>
+  </div>
+</div>
+
+<!-- PAGERANK -->
+<div class="panel" id="pagerankTab">
+  <div class="card">
+    <div class="card-title">📊 PageRank Calculator</div>
+    <div class="flex gap-16" style="flex-wrap:wrap;align-items:end">
+      <div class="input-group" style="flex:0 0 140px">
+        <label>Damping Factor</label>
+        <input type="number" class="input" id="dampingFactor" value="0.85" min="0" max="1" step="0.05">
+      </div>
+      <div class="input-group" style="flex:0 0 140px">
+        <label>Iterations</label>
+        <input type="number" class="input" id="prIterations" value="20" min="1" max="100">
+      </div>
+      <button class="btn btn-primary" onclick="runPageRank()">▶️ Calculate</button>
+    </div>
+  </div>
+
+  <div class="card" id="prGraphCard" style="display:none">
+    <div class="card-title">Link Graph</div>
+    <div class="graph-container" id="graphContainer">
+      <svg id="linkGraph"></svg>
+    </div>
+  </div>
+
+  <div class="card" id="prScoresCard" style="display:none">
+    <div class="card-title">PageRank Scores</div>
+    <div class="pr-scores" id="prScores"></div>
+  </div>
+</div>
+
+<!-- ANALYTICS -->
+<div class="panel" id="analyticsTab">
+  <div class="card">
+    <div class="card-title">📈 Analytics Dashboard</div>
+  </div>
+  <div class="analytics-grid" id="analyticsGrid">
+    <div class="analytics-card"><div class="icon">📄</div><div class="value" id="anPages">0</div><div class="label">Pages Crawled</div></div>
+    <div class="analytics-card"><div class="icon">📖</div><div class="value" id="anTerms">0</div><div class="label">Terms Indexed</div></div>
+    <div class="analytics-card"><div class="icon">🔗</div><div class="value" id="anLinks">0</div><div class="label">Total Links</div></div>
+    <div class="analytics-card"><div class="icon">⭐</div><div class="value" id="anAvgPR">0</div><div class="label">Avg PageRank</div></div>
+  </div>
+
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+    <div class="chart-container">
+      <h3>Top 10 Terms by Frequency</h3>
+      <div class="bar-chart" id="termsChart"></div>
+    </div>
+    <div class="chart-container">
+      <h3>Crawl Speed (pages/sec)</h3>
+      <div class="bar-chart" id="speedChart"></div>
+    </div>
+  </div>
+
+  <div class="card mt-24">
+    <div class="card-title">📊 PageRank Distribution</div>
+    <div class="bar-chart" id="prDistChart" style="height:160px"></div>
+  </div>
+</div>
+
+<script>
+// ==================== STATE ====================
+const S = {
+  pages: [], crawledPages: [], index: {}, pageRank: {}, linkGraph: {},
+  sortMode: 'relevance', theme: localStorage.getItem('seTheme') || 'light',
+  crawling: false, crawlAborted: false, crawlSpeedHistory: []
+};
+
+// ==================== STOP WORDS ====================
+const STOP_WORDS = new Set('a an the is are was were be been being have has had do does did will would shall should may might can could am at by for in of on to from with into about between through during before after above below up down out off over under again further then once here there when where why how all both each few more most other some such no nor not only own same so than too very s s t can just don should now'.split(' '));
+
+// ==================== BASIC STEMMER ====================
+function stem(word) {
+  if (word.length < 4) return word;
+  let w = word;
+  if (w.endsWith('ies')) w = w.slice(0, -3) + 'y';
+  else if (w.endsWith('sses')) w = w.slice(0, -2);
+  else if (w.endsWith('ational')) w = w.slice(0, -5) + 'e';
+  else if (w.endsWith('fulness')) w = w.slice(0, -4);
+  else if (w.endsWith('ousness')) w = w.slice(0, -4);
+  else if (w.endsWith('iveness')) w = w.slice(0, -4);
+  else if (w.endsWith('ation')) w = w.slice(0, -3) + 'e';
+  else if (w.endsWith('tion')) w = w.slice(0, -1);
+  else if (w.endsWith('ment')) w = w.slice(0, -3);
+  else if (w.endsWith('ness')) w = w.slice(0, -4);
+  else if (w.endsWith('able')) w = w.slice(0, -2);
+  else if (w.endsWith('ible')) w = w.slice(0, -2);
+  else if (w.endsWith('ing')) w = w.slice(0, -3);
+  else if (w.endsWith('ful')) w = w.slice(0, -3);
+  else if (w.endsWith('ous')) w = w.slice(0, -3);
+  else if (w.endsWith('ive')) w = w.slice(0, -2);
+  else if (w.endsWith('ity')) w = w.slice(0, -2);
+  else if (w.endsWith('ly')) w = w.slice(0, -2);
+  else if (w.endsWith('al')) w = w.slice(0, -2);
+  else if (w.endsWith('er')) w = w.slice(0, -2);
+  else if (w.endsWith('ed')) w = w.slice(0, -2);
+  else if (w.endsWith('es')) w = w.slice(0, -2);
+  else if (w.endsWith('s') && !w.endsWith('ss')) w = w.slice(0, -1);
+  if (w.endsWith('ee') && w.length > 3) w = w.slice(0, -1);
+  return w;
+}
+
+// ==================== THEME ====================
+function toggleTheme() {
+  S.theme = S.theme === 'light' ? 'dark' : 'light';
+  applyTheme();
+}
+function applyTheme() {
+  document.documentElement.setAttribute('data-theme', S.theme);
+  document.getElementById('themeIcon').textContent = S.theme === 'dark' ? '☀️' : '🌙';
+  document.getElementById('themeLabel').textContent = S.theme === 'dark' ? 'Light' : 'Dark';
+  localStorage.setItem('seTheme', S.theme);
+  if (S.crawledPages.length > 0 && S.pageRank && Object.keys(S.pageRank).length) drawGraph();
+}
+applyTheme();
+
+// ==================== NAV ====================
+document.querySelectorAll('.nav-tab').forEach(tab => {
+  tab.addEventListener('click', () => {
+    document.querySelectorAll('.nav-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+    tab.classList.add('active');
+    document.getElementById(tab.dataset.panel).classList.add('active');
+  });
+});
+
+function showPanel(id) {
+  document.querySelectorAll('.nav-tab').forEach(t => {
+    t.classList.toggle('active', t.dataset.panel === id);
+  });
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+
+// ==================== DEMO DATA ====================
+function generateDemoData() {
+  const pages = [
+    { url: 'https://example.com', title: 'Example Domain', content: 'This domain is for use in illustrative examples in documents. You may use this domain in literature without prior coordination or asking for permission. The example website provides resources for web developers and designers to test their projects.', links: ['https://example.com/about','https://example.com/docs','https://example.com/blog','https://example.com/contact'] },
+    { url: 'https://example.com/about', title: 'About Us - Example', content: 'We are a technology company focused on web development and search engine optimization. Our team of engineers builds cutting-edge tools for indexing and ranking web pages. We specialize in information retrieval and natural language processing.', links: ['https://example.com','https://example.com/team','https://example.com/careers'] },
+    { url: 'https://example.com/docs', title: 'Documentation Hub', content: 'Welcome to the documentation center. Find guides on web crawling, indexing strategies, and search engine algorithms. Learn about TF-IDF scoring, PageRank calculation, and inverted index data structures used in modern search engines.', links: ['https://example.com','https://example.com/docs/crawler','https://example.com/docs/indexing','https://example.com/docs/ranking'] },
+    { url: 'https://example.com/docs/crawler', title: 'Web Crawler Guide', content: 'A web crawler follows links on the internet to discover and download pages. The crawler respects robots.txt rules and manages a queue of URLs to visit. Crawling depth controls how many levels of links the crawler follows from the starting page.', links: ['https://example.com/docs','https://example.com/docs/indexing'] },
+    { url: 'https://example.com/docs/indexing', title: 'Indexing Strategies', content: 'An inverted index maps terms to the documents containing them. TF-IDF scoring helps determine term importance. Stop word filtering removes common words. Stemming reduces words to their root form for better matching.', links: ['https://example.com/docs','https://example.com/docs/ranking'] },
+    { url: 'https://example.com/docs/ranking', title: 'Search Ranking Algorithms', content: 'PageRank measures page importance based on link structure. BM25 combines term frequency with document length normalization. Modern search engines use machine learning to improve ranking quality and relevance.', links: ['https://example.com/docs','https://example.com'] },
+    { url: 'https://example.com/blog', title: 'Engineering Blog', content: 'Our engineering team shares insights on building scalable search infrastructure. Topics include distributed systems, real-time indexing, query optimization, and search quality evaluation. Follow our blog for the latest updates.', links: ['https://example.com','https://example.com/blog/post1','https://example.com/blog/post2'] },
+    { url: 'https://example.com/blog/post1', title: 'Building a Search Engine from Scratch', content: 'In this post we walk through building a mini search engine. We cover web crawling, content extraction, building an inverted index with TF-IDF, implementing PageRank, and creating a search interface with autocomplete suggestions.', links: ['https://example.com/blog','https://example.com'] },
+    { url: 'https://example.com/blog/post2', title: 'Advanced Ranking Techniques', content: 'Modern search ranking goes beyond simple keyword matching. We explore learning to rank, query expansion, spell correction, and semantic search using embeddings. These techniques improve search relevance significantly.', links: ['https://example.com/blog','https://example.com/docs/ranking'] },
+    { url: 'https://example.com/team', title: 'Our Team', content: 'Meet the engineers behind our search platform. Our team has expertise in information retrieval, machine learning, distributed systems, and user experience design. We are passionate about making information accessible.', links: ['https://example.com/about','https://example.com'] },
+    { url: 'https://example.com/careers', title: 'Join Our Team', content: 'We are hiring search engineers, data scientists, and full-stack developers. Work on challenging problems in large-scale indexing, real-time ranking, and natural language understanding. Competitive salary and benefits.', links: ['https://example.com/about','https://example.com'] },
+    { url: 'https://example.com/contact', title: 'Contact Us', content: 'Get in touch with our team. We welcome feedback on our search tools and documentation. Reach out via email or visit our offices. We respond to all inquiries within 24 hours.', links: ['https://example.com'] },
+  ];
+  return pages;
+}
+
+async function loadDemo() {
+  S.pages = generateDemoData();
+  await crawlAll(S.pages);
+  buildIndex();
+  runPageRank();
+  showPanel('searchHome');
+}
+
+// ==================== CRAWLER ====================
+async function startCrawl() {
+  if (S.crawling) return;
+  S.crawling = true;
+  S.crawlAborted = false;
+  S.pages = [];
+  const url = document.getElementById('crawlUrl').value.trim();
+  if (!url) return alert('Please enter a URL');
+
+  document.getElementById('crawlStats').style.display = 'flex';
+  document.getElementById('crawlProgressCard').style.display = 'block';
+  document.getElementById('crawlUrlCard').style.display = 'block';
+  document.getElementById('resetCrawl').style.display = 'inline-flex';
+  document.getElementById('crawlBtn').disabled = true;
+
+  const simulated = simulateCrawl(url);
+  await crawlAll(simulated);
+}
+
+function simulateCrawl(startUrl) {
+  const domain = startUrl.replace(/\/$/, '');
+  const pages = [
+    { url: domain, title: 'Home Page', content: 'Welcome to our website. We provide services and resources for our users. Explore our features and documentation.', links: [domain+'/about', domain+'/services', domain+'/blog'] },
+    { url: domain+'/about', title: 'About Us', content: 'Learn about our mission and team. We are dedicated to quality and innovation in everything we build.', links: [domain, domain+'/team'] },
+    { url: domain+'/services', title: 'Our Services', content: 'We offer web development, search optimization, and data analytics services. Our solutions are scalable and reliable.', links: [domain, domain+'/pricing'] },
+    { url: domain+'/blog', title: 'Blog', content: 'Read our latest articles on technology, engineering, and product updates. Stay informed with our blog posts.', links: [domain, domain+'/blog/post-1', domain+'/blog/post-2'] },
+    { url: domain+'/blog/post-1', title: 'Getting Started Guide', content: 'A beginner guide to using our platform. Follow these steps to set up your account and start building.', links: [domain+'/blog', domain] },
+    { url: domain+'/blog/post-2', title: 'Advanced Tips', content: 'Master our platform with these advanced techniques and best practices for power users.', links: [domain+'/blog', domain] },
+    { url: domain+'/team', title: 'Team', content: 'Our talented team brings together expertise in engineering, design, and product management.', links: [domain+'/about', domain] },
+    { url: domain+'/pricing', title: 'Pricing', content: 'Flexible pricing plans for every need. Free tier available. Enterprise solutions with custom pricing.', links: [domain+'/services', domain] },
+  ];
+  const maxDepth = parseInt(document.getElementById('crawlDepth').value);
+  return maxDepth >= 2 ? pages : pages.slice(0, 3);
+}
+
+async function crawlAll(pages) {
+  const total = pages.length;
+  const delay = parseInt(document.getElementById('crawlDelay')?.value || 300);
+  S.crawlSpeedHistory = [];
+  const startTime = Date.now();
+  let crawledCount = 0;
+
+  for (let i = 0; i < pages.length; i++) {
+    if (S.crawlAborted) break;
+    const p = pages[i];
+    S.pages.push(p);
+    crawledCount++;
+
+    addUrlToList(p.url, 'active');
+    document.getElementById('statQueued').textContent = total - i - 1;
+    document.getElementById('statCrawled').textContent = crawledCount;
+    document.getElementById('statLinks').textContent = pages.slice(0, i + 1).reduce((s, pp) => s + (pp.links?.length || 0), 0);
+
+    const pct = Math.round(((i + 1) / total) * 100);
+    document.getElementById('crawlProgressFill').style.width = pct + '%';
+    document.getElementById('crawlProgressText').textContent = `${pct}% — Crawling: ${p.url}`;
+
+    if (i > 0 && i % 2 === 0) {
+      const elapsed = (Date.now() - startTime) / 1000;
+      const speed = crawledCount / elapsed;
+      document.getElementById('statSpeed').textContent = speed.toFixed(1);
+      S.crawlSpeedHistory.push({ time: i, speed: parseFloat(speed.toFixed(1)) });
+    }
+
+    updateUrlStatus(p.url, 'crawled');
+    await sleep(delay);
+  }
+
+  S.crawlSpeedHistory.push({ time: pages.length, speed: parseFloat((crawledCount / ((Date.now() - startTime) / 1000)).toFixed(1)) });
+  S.crawledPages = [...S.pages];
+  S.crawling = false;
+  document.getElementById('crawlProgressText').textContent = `Done! ${crawledCount} pages crawled.`;
+  document.getElementById('crawlBtn').disabled = false;
+}
+
+function resetCrawler() {
+  S.crawling = false;
+  S.crawlAborted = true;
+  S.pages = [];
+  S.crawledPages = [];
+  S.index = {};
+  S.pageRank = {};
+  document.getElementById('crawlStats').style.display = 'none';
+  document.getElementById('crawlProgressCard').style.display = 'none';
+  document.getElementById('crawlUrlCard').style.display = 'none';
+  document.getElementById('resetCrawl').style.display = 'none';
+  document.getElementById('crawlProgressFill').style.width = '0%';
+  document.getElementById('urlList').innerHTML = '';
+  document.getElementById('crawlBtn').disabled = false;
+}
+
+function addUrlToList(url, status) {
+  const list = document.getElementById('urlList');
+  const item = document.createElement('div');
+  item.className = 'url-item';
+  item.innerHTML = `<div class="url-status ${status}"></div><div class="url-path">${url}</div><span class="tag tag-${status === 'crawled' ? 'green' : status === 'error' ? 'red' : 'yellow'}">${status}</span>`;
+  item.id = 'url-' + url.replace(/[^a-z0-9]/gi, '_');
+  list.appendChild(item);
+  list.scrollTop = list.scrollHeight;
+  document.getElementById('urlCountLabel').textContent = list.children.length + ' URLs';
+}
+
+function updateUrlStatus(url, status) {
+  const id = 'url-' + url.replace(/[^a-z0-9]/gi, '_');
+  const el = document.getElementById(id);
+  if (el) {
+    const dot = el.querySelector('.url-status');
+    const badge = el.querySelector('.tag');
+    if (dot) { dot.className = 'url-status ' + status; }
+    if (badge) { badge.className = 'tag tag-' + (status === 'crawled' ? 'green' : status === 'error' ? 'red' : 'yellow'); badge.textContent = status; }
+  }
+}
+
+// ==================== INDEX ====================
+function tokenize(text) {
+  return text.toLowerCase().replace(/[^a-z0-9\s]/g, '').split(/\s+/).filter(w => w.length > 0);
+}
+
+function buildIndex() {
+  const useStopWords = document.getElementById('useStopWords').checked;
+  const useStemming = document.getElementById('useStemming').checked;
+  S.index = {};
+  S.linkGraph = {};
+
+  const docs = S.pages.length > 0 ? S.pages : S.crawledPages;
+  if (docs.length === 0) { alert('No crawled pages. Load demo data or crawl a site first.'); return; }
+
+  const docTerms = {};
+  const N = docs.length;
+
+  docs.forEach(doc => {
+    S.linkGraph[doc.url] = doc.links || [];
+    let tokens = tokenize(doc.title + ' ' + doc.content);
+    if (useStopWords) tokens = tokens.filter(t => !STOP_WORDS.has(t));
+    if (useStemming) tokens = tokens.map(stem);
+
+    const freq = {};
+    tokens.forEach(t => { freq[t] = (freq[t] || 0) + 1; });
+    docTerms[doc.url] = freq;
+
+    Object.keys(freq).forEach(term => {
+      if (!S.index[term]) S.index[term] = [];
+      S.index[term].push({ url: doc.url, tf: freq[term], title: doc.title });
+    });
+  });
+
+  // Calculate TF-IDF
+  Object.keys(S.index).forEach(term => {
+    const df = S.index[term].length;
+    S.index[term].forEach(entry => {
+      const tf = entry.tf;
+      entry.tfidf = (1 + Math.log(tf)) * Math.log(N / df);
+    });
+  });
+
+  renderIndex();
+  updateAnalytics();
+}
+
+function renderIndex() {
+  const filter = document.getElementById('indexFilter').value.toLowerCase();
+  const terms = Object.keys(S.index).sort();
+  const filtered = filter ? terms.filter(t => t.includes(filter)) : terms;
+
+  const tbody = document.getElementById('indexTableBody');
+  tbody.innerHTML = '';
+
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="3" style="text-align:center;padding:40px;color:var(--text3)">No terms found</td></tr>';
+  } else {
+    filtered.forEach(term => {
+      const entries = S.index[term].sort((a, b) => b.tfidf - a.tfidf);
+      const tr = document.createElement('tr');
+      const docChips = entries.slice(0, 8).map(e =>
+        `<span class="doc-chip" title="TF-IDF: ${e.tfidf.toFixed(2)}">${e.title || e.url.split('/').pop()} <span class="term-freq">(${e.tfidf.toFixed(2)})</span></span>`
+      ).join('');
+      const more = entries.length > 8 ? `<span class="text-xs text-muted"> +${entries.length - 8} more</span>` : '';
+      tr.innerHTML = `<td><strong>${term}</strong></td><td>${entries.length}</td><td>${docChips}${more}</td>`;
+      tbody.appendChild(tr);
+    });
+  }
+
+  document.getElementById('indexStats').style.display = 'flex';
+  document.getElementById('indexTermCount').textContent = Object.keys(S.index).length;
+  const docSet = new Set();
+  Object.values(S.index).forEach(arr => arr.forEach(e => docSet.add(e.url)));
+  document.getElementById('indexDocCount').textContent = docSet.size;
+  let totalTf = 0, count = 0;
+  Object.values(S.index).forEach(arr => arr.forEach(e => { totalTf += e.tfidf; count++; }));
+  document.getElementById('indexAvgTfidf').textContent = count > 0 ? (totalTf / count).toFixed(2) : '0';
+}
+
+function filterIndex() { renderIndex(); }
+
+// ==================== PAGERANK ====================
+function runPageRank() {
+  if (S.pages.length === 0 && S.crawledPages.length === 0) { alert('No data. Load demo or crawl first.'); return; }
+  if (Object.keys(S.linkGraph).length === 0) buildIndex();
+
+  const d = parseFloat(document.getElementById('dampingFactor').value);
+  const iterations = parseInt(document.getElementById('prIterations').value);
+  const pages = S.pages.length > 0 ? S.pages : S.crawledPages;
+  const urls = pages.map(p => p.url);
+  const N = urls.length;
+  let pr = {};
+  urls.forEach(u => pr[u] = 1 / N);
+
+  const outLinks = {};
+  urls.forEach(u => { outLinks[u] = (S.linkGraph[u] || []).filter(l => urls.includes(l)); });
+
+  for (let iter = 0; iter < iterations; iter++) {
+    let newPr = {};
+    urls.forEach(u => {
+      let sum = 0;
+      urls.forEach(v => {
+        if (outLinks[v] && outLinks[v].includes(u)) {
+          sum += pr[v] / outLinks[v].length;
+        }
+      });
+      newPr[u] = (1 - d) / N + d * sum;
+    });
+    pr = newPr;
+  }
+
+  S.pageRank = pr;
+  renderPageRank();
+  drawGraph();
+  updateAnalytics();
+}
+
+function renderPageRank() {
+  const sorted = Object.entries(S.pageRank).sort((a, b) => b[1] - a[1]);
+  const max = sorted[0]?.[1] || 1;
+  const container = document.getElementById('prScores');
+  container.innerHTML = '';
+
+  sorted.forEach(([url, score]) => {
+    const pct = (score / max) * 100;
+    const hue = (score / max) * 120;
+    const title = (S.pages.find(p => p.url === url) || S.crawledPages.find(p => p.url === url))?.title || url.split('/').pop();
+    container.innerHTML += `<div class="pr-row"><div class="pr-url" title="${url}"><strong>${title}</strong><br><span class="text-xs text-muted">${url}</span></div><div class="pr-bar"><div class="pr-bar-fill" style="width:${pct}%;background:hsl(${hue},70%,50%)"></div></div><div class="pr-score">${score.toFixed(4)}</div></div>`;
+  });
+
+  document.getElementById('prGraphCard').style.display = 'block';
+  document.getElementById('prScoresCard').style.display = 'block';
+}
+
+function drawGraph() {
+  const svg = document.getElementById('linkGraph');
+  svg.innerHTML = '';
+  const container = document.getElementById('graphContainer');
+  const W = container.clientWidth || 800;
+  const H = container.clientHeight || 450;
+
+  const pages = S.pages.length > 0 ? S.pages : S.crawledPages;
+  const urls = pages.map(p => p.url);
+  const maxPR = Math.max(...Object.values(S.pageRank || {}), 0.001);
+
+  const nodes = urls.map((url, i) => {
+    const angle = (i / urls.length) * Math.PI * 2 - Math.PI / 2;
+    const rx = W * 0.38;
+    const ry = H * 0.38;
+    return { url, x: W / 2 + rx * Math.cos(angle), y: H / 2 + ry * Math.sin(angle), pr: S.pageRank[url] || 0 };
+  });
+
+  const nodeMap = {};
+  nodes.forEach(n => nodeMap[n.url] = n);
+
+  // Draw edges
+  const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+  defs.innerHTML = `<marker id="arrowhead" viewBox="0 0 10 7" refX="10" refY="3.5" markerWidth="8" markerHeight="6" orient="auto"><polygon points="0 0, 10 3.5, 0 7" fill="${S.theme === 'dark' ? '#5f6368' : '#dadce0'}" /></marker>`;
+  svg.appendChild(defs);
+
+  Object.entries(S.linkGraph).forEach(([from, tos]) => {
+    if (!nodeMap[from]) return;
+    tos.forEach(to => {
+      if (!nodeMap[to]) return;
+      const line = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+      const dx = nodeMap[to].x - nodeMap[from].x;
+      const dy = nodeMap[to].y - nodeMap[from].y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const offset = 18;
+      line.setAttribute('x1', nodeMap[from].x + (dx / dist) * offset);
+      line.setAttribute('y1', nodeMap[from].y + (dy / dist) * offset);
+      line.setAttribute('x2', nodeMap[to].x - (dx / dist) * (offset + 4));
+      line.setAttribute('y2', nodeMap[to].y - (dy / dist) * (offset + 4));
+      line.setAttribute('stroke', S.theme === 'dark' ? 'rgba(255,255,255,0.15)' : 'rgba(0,0,0,0.12)');
+      line.setAttribute('stroke-width', '1.5');
+      line.setAttribute('marker-end', 'url(#arrowhead)');
+      svg.appendChild(line);
+    });
+  });
+
+  // Draw nodes
+  nodes.forEach(n => {
+    const r = 12 + (n.pr / maxPR) * 20;
+    const hue = (n.pr / maxPR) * 120;
+    const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+    circle.setAttribute('cx', n.x);
+    circle.setAttribute('cy', n.y);
+    circle.setAttribute('r', r);
+    circle.setAttribute('fill', `hsl(${hue},65%,50%)`);
+    circle.setAttribute('stroke', S.theme === 'dark' ? '#1a1a2e' : '#fff');
+    circle.setAttribute('stroke-width', '2');
+    circle.setAttribute('opacity', '0.9');
+    svg.appendChild(circle);
+
+    const text = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+    text.setAttribute('x', n.x);
+    text.setAttribute('y', n.y - r - 6);
+    text.setAttribute('text-anchor', 'middle');
+    text.setAttribute('font-size', '10');
+    text.setAttribute('fill', S.theme === 'dark' ? '#ccc' : '#333');
+    text.setAttribute('font-family', 'sans-serif');
+    const title = (S.pages.find(p => p.url === n.url) || S.crawledPages.find(p => p.url === n.url))?.title || n.url.split('/').pop();
+    text.textContent = title.length > 20 ? title.slice(0, 18) + '...' : title;
+    svg.appendChild(text);
+  });
+}
+
+// ==================== SEARCH ====================
+function performSearch(query) {
+  query = query || document.getElementById('homeSearchInput').value.trim();
+  if (!query) return;
+  document.getElementById('homeSearchInput').value = query;
+  document.getElementById('resultsSearchInput').value = query;
+
+  const docs = S.pages.length > 0 ? S.pages : S.crawledPages;
+  if (docs.length === 0) { alert('No data. Load demo or crawl first.'); return; }
+  if (Object.keys(S.index).length === 0) buildIndex();
+
+  const useStemming = document.getElementById('useStemming')?.checked ?? true;
+  const useStopWords = document.getElementById('useStopWords')?.checked ?? true;
+
+  let terms = tokenize(query);
+  if (useStopWords) terms = terms.filter(t => !STOP_WORDS.has(t));
+  if (useStemming) terms = terms.map(stem);
+
+  const docScores = {};
+  terms.forEach(term => {
+    (S.index[term] || []).forEach(entry => {
+      if (!docScores[entry.url]) docScores[entry.url] = { score: 0, tfidfSum: 0 };
+      docScores[entry.url].score += entry.tfidf;
+      docScores[entry.url].tfidfSum += entry.tfidf;
+    });
+  });
+
+  let results = Object.entries(docScores).map(([url, data]) => {
+    const page = docs.find(p => p.url === url);
+    const pr = S.pageRank[url] || 0;
+    return { url, title: page?.title || url, content: page?.content || '', score: data.score, pagerank: pr, combined: data.score * 0.7 + pr * 100 * 0.3 };
+  });
+
+  if (S.sortMode === 'relevance') results.sort((a, b) => b.score - a.score);
+  else results.sort((a, b) => b.pagerank - a.pagerank);
+
+  renderResults(results, query);
+  showPanel('searchResultsPanel');
+}
+
+function renderResults(results, query) {
+  const container = document.getElementById('searchResults');
+  document.getElementById('resultCount').textContent = `About ${results.length} results (${(Math.random() * 0.3 + 0.05).toFixed(2)} seconds)`;
+
+  if (results.length === 0) {
+    container.innerHTML = '<div style="text-align:center;padding:60px;color:var(--text3)">No results found. Try different keywords.</div>';
+    return;
+  }
+
+  container.innerHTML = results.map((r, i) => {
+    const snippet = highlightTerms(r.content, query, 200);
+    const shortUrl = r.url.replace(/^https?:\/\//, '').replace(/\/$/, '');
+    return `<div class="result-item">
+      <div class="result-url">${shortUrl}</div>
+      <a class="result-title" href="#">${highlightTerms(r.title, query)}</a>
+      <div class="result-snippet">${snippet}</div>
+      <div class="result-meta">
+        <span>Relevance: ${r.score.toFixed(2)}</span>
+        <span>PageRank: ${r.pagerank.toFixed(4)}</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function highlightTerms(text, query, maxLen) {
+  let terms = tokenize(query);
+  let result = text;
+  if (maxLen && result.length > maxLen) {
+    const firstTerm = terms[0] || '';
+    const idx = result.toLowerCase().indexOf(firstTerm);
+    if (idx > 50) result = '...' + result.slice(idx - 30, idx + maxLen - 30) + '...';
+    else result = result.slice(0, maxLen) + '...';
+  }
+  terms.forEach(term => {
+    const regex = new RegExp(`\\b(${term}\\w*)`, 'gi');
+    result = result.replace(regex, '<span class="highlight">$1</span>');
+  });
+  return result;
+}
+
+function setSortMode(mode, btn) {
+  S.sortMode = mode;
+  document.querySelectorAll('.sort-toggle .btn').forEach(b => b.classList.remove('active'));
+  btn.classList.add('active');
+  performSearch(document.getElementById('resultsSearchInput').value);
+}
+
+// ==================== SUGGESTIONS ====================
+function setupSuggestions(inputId, suggestionsId) {
+  const input = document.getElementById(inputId);
+  const sug = document.getElementById(suggestionsId);
+  if (!input || !sug) return;
+
+  input.addEventListener('input', () => {
+    const val = input.value.toLowerCase().trim();
+    if (val.length < 2 || Object.keys(S.index).length === 0) { sug.classList.remove('show'); return; }
+    const matches = Object.keys(S.index).filter(t => t.startsWith(val) || t.includes(val)).slice(0, 8);
+    if (matches.length === 0) { sug.classList.remove('show'); return; }
+    sug.innerHTML = matches.map(m => `<div class="suggestion-item" onclick="document.getElementById('${inputId}').value='${m}';sug.classList.remove('show');${inputId === 'homeSearchInput' ? 'performSearch()' : 'performSearch()'}"><span>🔍</span><span class="term">${m}</span><span class="count">${S.index[m].length} docs</span></div>`).join('');
+    sug.classList.add('show');
+  });
+
+  input.addEventListener('keydown', e => {
+    if (e.key === 'Enter') { sug.classList.remove('show'); performSearch(); }
+  });
+
+  input.addEventListener('blur', () => setTimeout(() => sug.classList.remove('show'), 200));
+}
+setupSuggestions('homeSearchInput', 'homeSuggestions');
+setupSuggestions('resultsSearchInput', 'resultsSuggestions');
+
+// ==================== ANALYTICS ====================
+function updateAnalytics() {
+  const docs = S.pages.length > 0 ? S.pages : S.crawledPages;
+  document.getElementById('anPages').textContent = docs.length;
+  document.getElementById('anTerms').textContent = Object.keys(S.index).length;
+  document.getElementById('anLinks').textContent = docs.reduce((s, d) => s + (d.links?.length || 0), 0);
+  const prVals = Object.values(S.pageRank || {});
+  document.getElementById('anAvgPR').textContent = prVals.length > 0 ? (prVals.reduce((a, b) => a + b, 0) / prVals.length).toFixed(4) : '0';
+
+  renderTermsChart();
+  renderSpeedChart();
+  renderPRDistChart();
+}
+
+function renderTermsChart() {
+  const termFreqs = Object.entries(S.index).map(([term, entries]) => ({ term, count: entries.reduce((s, e) => s + e.tf, 0) }));
+  termFreqs.sort((a, b) => b.count - a.count);
+  const top10 = termFreqs.slice(0, 10);
+  const max = top10[0]?.count || 1;
+  const container = document.getElementById('termsChart');
+  container.innerHTML = top10.map(t => {
+    const h = (t.count / max) * 180;
+    return `<div class="bar-col"><div class="bar-value">${t.count}</div><div class="bar" style="height:${h}px;background:linear-gradient(180deg,#4285f4,#34a853)"></div><div class="bar-label">${t.term}</div></div>`;
+  }).join('');
+}
+
+function renderSpeedChart() {
+  const data = S.crawlSpeedHistory.length > 0 ? S.crawlSpeedHistory : [{ time: 1, speed: 2 }, { time: 2, speed: 3 }, { time: 3, speed: 2.8 }];
+  const max = Math.max(...data.map(d => d.speed), 1);
+  const container = document.getElementById('speedChart');
+  container.innerHTML = data.slice(-15).map(d => {
+    const h = (d.speed / max) * 180;
+    return `<div class="bar-col"><div class="bar-value">${d.speed}</div><div class="bar" style="height:${h}px;background:linear-gradient(180deg,#ea4335,#fbbc04)"></div></div>`;
+  }).join('');
+}
+
+function renderPRDistChart() {
+  const vals = Object.values(S.pageRank || {});
+  if (vals.length === 0) return;
+  const buckets = [0, 0, 0, 0, 0];
+  const max = Math.max(...vals);
+  vals.forEach(v => {
+    const idx = Math.min(Math.floor((v / max) * 5), 4);
+    buckets[idx]++;
+  });
+  const bMax = Math.max(...buckets, 1);
+  const labels = ['Very Low', 'Low', 'Medium', 'High', 'Very High'];
+  const container = document.getElementById('prDistChart');
+  container.innerHTML = buckets.map((b, i) => {
+    const h = (b / bMax) * 140;
+    const colors = ['#ea4335', '#fbbc04', '#4285f4', '#34a853', '#0d652d'];
+    return `<div class="bar-col"><div class="bar-value">${b}</div><div class="bar" style="height:${Math.max(h, 4)}px;background:${colors[i]}"></div><div class="bar-label">${labels[i]}</div></div>`;
+  }).join('');
+}
+
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// Resize graph on window resize
+window.addEventListener('resize', () => { if (Object.keys(S.pageRank).length) drawGraph(); });
+</script>
+</body>
+</html>
